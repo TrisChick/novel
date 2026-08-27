@@ -349,19 +349,24 @@ https://api.github.com/repos/用户名/仓库名/contents/novel
 
 ---
 
-## 📥 如何导入一本新书（自动脚本）
+## 📥 如何导入一本新书
 
-仓库内置了全自动导入工具 `tools/import_novel.mjs`，一条命令即可把任意 TXT 小说拆分成章节并接入阅读站，无需手动处理：
+### 方式一：`_inbox` 自助导入（推荐，无需命令行）
+把小说 `.txt` 放到 `_inbox/` 并 push 到 `main`（GitHub 网页 "Add file" 上传即可），GitHub Actions 会自动执行 `tools/import_novel.mjs` 拆分、生成 `novel/<书名>/` 与 `toc.json`、更新 `sort.json`、删除已处理文件并推送上架。详见 `_inbox/README.md`。
+
+### 方式二：本地一键导入工具
+仓库内置全自动导入工具 `tools/import_novel.mjs`，一条命令即可把任意 TXT 小说拆分成章节并接入阅读站，无需手动处理：
 
 ```bash
 node tools/import_novel.mjs "路径\小说.txt"
 ```
 
-脚本会自动完成：编码识别（UTF-8/GB18030）→ 章节标题识别（第X章/节/回/卷，行首锚定防误判）→ 段落切分（4空格/空行/每行一段）→ 过滤下载站页脚 → 生成带元信息的 `novel/<书名>/NNN.txt` 章节文件 → 更新 `novel/sort.json`。
+脚本会自动完成：编码识别（UTF-8/GB18030）→ 章节标题识别（第X章/回/话、第X节/篇/幕、Chapter N、第1章、一/1/（一）、序章/番外等，行首锚定防误判）→ 卷识别（第X卷/上卷/卷X 或卷内序号回绕的隐式卷）→ 段落切分（4空格/空行/每行一段）→ 过滤下载站页脚 → 三档兜底（卷+章 / 普通分章 / 整本单篇）→ 生成带元信息的 `novel/<书名>/NNN.txt` 章节文件 → 更新 `novel/sort.json` → 生成 `toc.json`。
 
-可选参数：`--book 书名`、`--author 作者`（默认自动提取）、`--out 目录`（指定输出目录）、`--dry-run`（只分析不写入）。导入后 `git add -A && git commit && git push` 即可上线。
+可选参数：`--book 书名`、`--author 作者`（默认自动提取）、`--out 目录`（指定输出目录）、`--pattern 正则`、`--single`（强制单篇）、`--min-chapters n`、`--verbose`、`--dry-run`（只分析不写入）。导入后 `git add -A && git commit && git push` 即可上线。
 
 ---
+
 
 ## 📄 开源说明
 
