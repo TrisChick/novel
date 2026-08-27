@@ -239,6 +239,28 @@ async function initDetail() {
 
 function backToHome() { location.href = "index.html"; }
 
+// 分页：每页最多 PAGE_CHARS 字；正文超过则切成多页，阅读页显示「上一页/目录/下一页」，
+// 与「上一章/目录/下一章」互斥（两组不同时出现）。
+const PAGE_CHARS = 100000;
+function splitPages(text) {
+    if (text.length <= PAGE_CHARS) return [text];
+    const pages = [];
+    let start = 0;
+    while (start < text.length) {
+        let end = start + PAGE_CHARS;
+        if (end < text.length) {
+            // 优先在换行处断页，避免截断第 100000 字处的半行
+            const nl = text.lastIndexOf("\n", end);
+            if (nl > start) end = nl + 1;
+        } else {
+            end = text.length;
+        }
+        pages.push(text.slice(start, end));
+        start = end;
+    }
+    return pages;
+}
+
 // ---- 阅读页 ----
 async function initReader() {
     const { book, ch } = getQuery();
@@ -259,20 +281,44 @@ async function initReader() {
         $("readerTitle").textContent = meta.title || cur.title;
         const curVol = (chapters[idx] && chapters[idx].volume) ? chapters[idx].volume : null;
         $("readerMeta").textContent = `书籍：${meta.book || book}　作者：${meta.author || "佚名"}` + (curVol ? `　卷：${curVol}` : "");
-        $("reader-content").innerHTML = marked.parse(content);
-        applyReaderCss();
 
-        // 上一章 / 下一章 / 目录
+        // 导航：分页时显示「上一页/目录/下一页」，否则显示「上一章/目录/下一章」
         const prev = idx > 0 ? chapters[idx - 1] : null;
         const next = idx >= 0 && idx < chapters.length - 1 ? chapters[idx + 1] : null;
-        const prevBtn = $("prevChBtn");
-        const nextBtn = $("nextChBtn");
-        prevBtn.disabled = !prev;
-        nextBtn.disabled = !next;
-        prevBtn.onclick = () => { if (prev) location.href = `reader.html?book=${enc(meta.book || book)}&ch=${enc(prev.file)}`; };
-        nextBtn.onclick = () => { if (next) location.href = `reader.html?book=${enc(meta.book || book)}&ch=${enc(next.file)}`; };
+        const prevChBtn = $("prevChBtn");
+        const nextChBtn = $("nextChBtn");
+        const prevPageBtn = $("prevPageBtn");
+        const nextPageBtn = $("nextPageBtn");
+        prevChBtn.onclick = () => { if (prev) location.href = `reader.html?book=${enc(meta.book || book)}&ch=${enc(prev.file)}`; };
+        nextChBtn.onclick = () => { if (next) location.href = `reader.html?book=${enc(meta.book || book)}&ch=${enc(next.file)}`; };
         $("tocBtn").onclick = () => { location.href = `detail.html?book=${enc(meta.book || book)}`; };
-        $("pageInfo").textContent = `第 ${idx + 1} 章 / 共 ${chapters.length} 章`;
+
+        const pages = splitPages(content);
+        let pageIndex = 0;
+        const renderPage = () => {
+            $("reader-content").innerHTML = marked.parse(pages[pageIndex]);
+            applyReaderCss();
+            if (pages.length > 1) {
+                prevChBtn.style.display = "none";
+                nextChBtn.style.display = "none";
+                prevPageBtn.style.display = "";
+                nextPageBtn.style.display = "";
+                prevPageBtn.disabled = pageIndex <= 0;
+                nextPageBtn.disabled = pageIndex >= pages.length - 1;
+                prevPageBtn.onclick = () => { if (pageIndex > 0) { pageIndex--; renderPage(); window.scrollTo({ top: 0, behavior: "smooth" }); } };
+                nextPageBtn.onclick = () => { if (pageIndex < pages.length - 1) { pageIndex++; renderPage(); window.scrollTo({ top: 0, behavior: "smooth" }); } };
+                $("pageInfo").textContent = `第 ${pageIndex + 1} / ${pages.length} 页　第 ${idx + 1} / ${chapters.length} 章`;
+            } else {
+                prevPageBtn.style.display = "none";
+                nextPageBtn.style.display = "none";
+                prevChBtn.style.display = "";
+                nextChBtn.style.display = "";
+                prevChBtn.disabled = !prev;
+                nextChBtn.disabled = !next;
+                $("pageInfo").textContent = `第 ${idx + 1} 章 / 共 ${chapters.length} 章`;
+            }
+        };
+        renderPage();
 
         showStatus("");
         window.scrollTo({ top: 0, behavior: "smooth" });
