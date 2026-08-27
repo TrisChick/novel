@@ -141,6 +141,7 @@ async function initHome() {
         // 统一按书名排序
         books.sort((a, b) => (a.book || a.name).localeCompare(b.book || b.name, "zh-CN"));
         renderBookList(books);
+        showStatus(`共 ${books.length} 本书`);
     } catch (e) {
         showError(`加载失败：${e.message}，请检查网络或仓库配置`);
     } finally {
