@@ -5,7 +5,11 @@ const CONFIG = {
     GH_BRANCH: "main",
     GH_API: "https://api.github.com/repos",
     CDN_BASE: "https://cdn.jsdelivr.net/gh/TrisChick/novel@main/",
-    STORAGE_KEY: "simple_reader_setting"
+    STORAGE_KEY: "simple_reader_setting",
+    // 访问口令门（方案一，挡随手点开的路人；纯前端，懂行的人可绕过）
+    // 填口令的 SHA-256 十六进制值即启用；留空字符串 = 不启用（公开）。
+    // 生成：node tools/gen_pwd.mjs 你的口令
+    ACCESS_PWD: ""
 };
 
 // ===================== 阅读设置（跨页持久化） =====================
@@ -278,18 +282,71 @@ async function initReader() {
     }
 }
 
+// ===================== 访问口令门（方案一） =====================
+async function sha256hex(s) {
+    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
+    return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("");
+}
+function isUnlocked() { return sessionStorage.getItem("simple_reader_key") === "1"; }
+function markUnlocked() { sessionStorage.setItem("simple_reader_key", "1"); }
+
+function buildGate() {
+    // 遮住内容，阻止加载，直到输入正确口令
+    document.querySelector(".container").style.visibility = "hidden";
+    const wrap = document.createElement("div");
+    wrap.className = "gate-modal";
+    wrap.innerHTML = `
+        <div class="gate-box">
+            <h2>简单阅读</h2>
+            <p class="gate-tip">请输入访问口令</p>
+            <input id="gateInput" type="password" placeholder="访问口令" autocomplete="off">
+            <button id="gateBtn" class="save-setting-btn">进入</button>
+            <div id="gateErr" class="gate-err"></div>
+        </div>`;
+    document.body.appendChild(wrap);
+    const input = wrap.querySelector("#gateInput");
+    const btn = wrap.querySelector("#gateBtn");
+    const err = wrap.querySelector("#gateErr");
+    const tryIn = async () => {
+        if (!input.value) { err.textContent = "请输入口令"; return; }
+        const h = await sha256hex(input.value);
+        if (h === CONFIG.ACCESS_PWD) {
+            markUnlocked();
+            wrap.remove();
+            document.querySelector(".container").style.visibility = "";
+            runPageInit();
+        } else {
+            err.textContent = "口令不正确";
+            input.value = "";
+            input.focus();
+        }
+    };
+    btn.onclick = tryIn;
+    input.addEventListener("keydown", e => { if (e.key === "Enter") tryIn(); });
+    setTimeout(() => input.focus(), 100);
+}
+
 // ===================== 初始化 =====================
-window.onload = () => {
-    loadSetting();
-    applyTheme();
+function runPageInit() {
     const page = document.body.dataset.page;
     if (page === "home") initHome();
     else if (page === "detail") initDetail();
     else if (page === "reader") initReader();
-    applyReaderCss();
 
     const sm = $("settingModal");
     if (sm) sm.addEventListener("click", e => { if (e.target.id === "settingModal") closeSettingModal(); });
     const si = $("searchInput");
     if (si) si.addEventListener("keydown", e => { if (e.key === "Enter") doSearch(); });
+}
+
+window.onload = () => {
+    loadSetting();
+    applyTheme();
+    applyReaderCss();
+
+    if (CONFIG.ACCESS_PWD && !isUnlocked()) {
+        buildGate();
+    } else {
+        runPageInit();
+    }
 };
