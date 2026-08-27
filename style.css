@@ -58,6 +58,7 @@ body{
 .detail-title{font-size:1.5rem;font-weight:800;color:var(--accent)}
 .detail-meta{text-align:center;color:var(--sub);margin-bottom:22px;line-height:1.7;font-size:0.95rem}
 .toc-list{display:flex;flex-direction:column;gap:8px}
+.toc-volume{color:var(--accent);font-weight:800;font-size:1.05rem;margin:20px 4px 2px;padding:6px 2px;border-bottom:1px solid var(--border)}
 .toc-item{background:var(--glass-bg);border:1px solid var(--glass-border);border-radius:12px;padding:14px 18px;cursor:pointer;transition:var(--transition);font-size:0.98rem;color:var(--text)}
 .toc-item:hover{background:var(--accent-soft);color:var(--accent);border-color:var(--accent)}
 .toc-item.active{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);font-weight:600}

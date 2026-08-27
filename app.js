@@ -186,14 +186,45 @@ async function initDetail() {
         $("detailMeta").textContent = `作者：${t.author || "佚名"}　共 ${t.chapters.length} 章`;
         const toc = $("tocList");
         toc.innerHTML = "";
-        t.chapters.forEach((ch, i) => {
-            const item = document.createElement("div");
-            item.className = "toc-item";
-            item.textContent = `${ch.title}`;
-            item.onclick = () => { location.href = `reader.html?book=${enc(t.book || book)}&ch=${enc(ch.file)}`; };
-            toc.appendChild(item);
-        });
-        showStatus(`共 ${t.chapters.length} 章`);
+        const chapters = t.chapters || [];
+        const open = file => { location.href = `reader.html?book=${enc(t.book || book)}&ch=${enc(file)}`; };
+        const hasVolumes = t.mode === "volumes" && Array.isArray(t.volumes) && t.volumes.length > 0;
+        if (hasVolumes) {
+            // 不归属任何卷的章节（如前置简介、卷前序章）先平铺
+            const inVol = new Set();
+            t.volumes.forEach(v => (v.chapters || []).forEach(f => inVol.add(f)));
+            chapters.filter(c => !inVol.has(c.file)).forEach(ch => {
+                const item = document.createElement("div");
+                item.className = "toc-item";
+                item.textContent = ch.title;
+                item.onclick = () => open(ch.file);
+                toc.appendChild(item);
+            });
+            // 按卷分组
+            t.volumes.forEach(v => {
+                const hd = document.createElement("div");
+                hd.className = "toc-volume";
+                hd.textContent = v.title;
+                toc.appendChild(hd);
+                (v.chapters || []).forEach(file => {
+                    const ch = chapters.find(c => c.file === file);
+                    const item = document.createElement("div");
+                    item.className = "toc-item";
+                    item.textContent = ch ? ch.title : file;
+                    item.onclick = () => open(file);
+                    toc.appendChild(item);
+                });
+            });
+        } else {
+            chapters.forEach(ch => {
+                const item = document.createElement("div");
+                item.className = "toc-item";
+                item.textContent = ch.title;
+                item.onclick = () => open(ch.file);
+                toc.appendChild(item);
+            });
+        }
+        showStatus(`共 ${chapters.length} 章`);
     } catch (e) {
         showError(`加载失败：${e.message}`);
     } finally {
@@ -221,7 +252,8 @@ async function initReader() {
         const content = raw.replace(/<!--\s*ZW_META:[\s\S]*?-->\s*/, "").trim();
 
         $("readerTitle").textContent = meta.title || cur.title;
-        $("readerMeta").textContent = `书籍：${meta.book || book}　作者：${meta.author || "佚名"}`;
+        const curVol = (chapters[idx] && chapters[idx].volume) ? chapters[idx].volume : null;
+        $("readerMeta").textContent = `书籍：${meta.book || book}　作者：${meta.author || "佚名"}` + (curVol ? `　卷：${curVol}` : "");
         $("reader-content").innerHTML = marked.parse(content);
         applyReaderCss();
 
