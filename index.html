@@ -44,11 +44,9 @@ body{
 .search-bar{width:100%;margin-bottom:16px;display:flex;gap:10px;align-items:center;background:var(--glass-bg);border:1px solid var(--glass-border);border-radius:var(--radius-pill);padding:6px 6px 6px 18px;box-shadow:var(--shadow)}
 #searchInput{flex:1;padding:10px 8px;border:none;background:transparent;color:var(--text);font-size:0.95rem;outline:none}
 #searchInput::placeholder{color:var(--sub)}
-#searchBtn,#resetBtn{padding:10px 20px;border-radius:var(--radius-pill);cursor:pointer;transition:var(--transition);font-weight:500;border:none;font-size:0.88rem}
+#searchBtn{padding:10px 20px;border-radius:var(--radius-pill);cursor:pointer;transition:var(--transition);font-weight:500;border:none;font-size:0.88rem}
 #searchBtn{background:var(--accent);color:#fff}
 #searchBtn:hover{background:var(--accent-2)}
-#resetBtn{border:1px solid var(--glass-border);background:transparent;color:var(--text)}
-#resetBtn:hover{background:var(--accent-soft)}
 
 .action-bar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:18px}
 .mode-switch{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
@@ -88,8 +86,6 @@ body{
 .setting-btn-sm{padding:8px 14px;border:1px solid var(--glass-border);border-radius:10px;background:var(--glass-bg);color:var(--text);cursor:pointer;font-size:0.85rem;transition:var(--transition)}
 .setting-btn-sm:hover{background:var(--accent);color:#fff}
 .setting-btn-sm.active{background:var(--accent);color:#fff;border-color:var(--accent)}
-#pageWordCount{width:90px;padding:8px 12px;border:1px solid var(--glass-border);border-radius:10px;background:var(--glass-bg);color:var(--text);font-size:0.9rem;outline:none;text-align:center}
-#pageWordCount:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
 #reader-content{line-height:1.9;word-break:break-word;padding:10px 0;color:var(--reader-text);font-size:18px}
 #reader-content h1,#reader-content h2,#reader-content h3{color:var(--accent);margin:18px 0 10px}
 #reader-content p{margin-bottom:14px;text-indent:2em}
@@ -143,7 +139,6 @@ body{
     <div class="search-bar">
         <input id="searchInput" placeholder="搜索书名 / 作者 / 章节">
         <button id="searchBtn" onclick="doSearch()">搜索</button>
-        <button id="resetBtn" onclick="resetSearch()">重置</button>
     </div>
 
     <div class="action-bar">
@@ -183,8 +178,6 @@ body{
                 <span>阅读模式</span>
                 <button class="setting-btn-sm active" data-readmode="scroll" onclick="switchReadMode('scroll',this)">滚动</button>
                 <button class="setting-btn-sm" data-readmode="page" onclick="switchReadMode('page',this)">分页</button>
-                <span>单页字数</span>
-                <input type="number" id="pageWordCount" value="1200" min="400" max="3000" onchange="updatePagination()">
                 <span>字号</span>
                 <button class="setting-btn-sm" onclick="changeFontSize(-2)">A-</button>
                 <button class="setting-btn-sm" onclick="changeFontSize(2)">A+</button>
@@ -225,17 +218,6 @@ body{
                 <option value="2.0">宽松 2.0</option>
             </select>
         </div>
-        <div class="setting-item">
-            <label>默认主题</label>
-            <select id="setDefaultTheme">
-                <option value="light" selected>日间模式</option>
-                <option value="dark">夜间模式</option>
-            </select>
-        </div>
-        <div class="setting-item">
-            <label>分页默认字数</label>
-            <input type="number" id="setDefaultWords" value="1200" min="400" max="3000">
-        </div>
         <button class="save-setting-btn" onclick="saveGlobalSettings()">保存设置</button>
     </div>
 </div>
@@ -263,6 +245,7 @@ let currentPage = 1;
 let totalPages = 1;
 let pageContents = [];
 let fontSize = 18;
+let currentReadMode = "scroll";
 
 const $ = id => document.getElementById(id);
 const statusTip = $("statusTip");
@@ -419,10 +402,13 @@ function renderBookList() {
     const names = sortBookNames(Object.keys(map));
     bookListEl.innerHTML = "";
     if (names.length === 0) {
-        const empty = document.createElement("div");
-        empty.className = "status-tip";
-        empty.textContent = "没有找到匹配的书籍";
-        bookListEl.appendChild(empty);
+        // 未加载任何书籍时不渲染空提示，交由状态栏显示"当前暂无书籍"
+        if (allNovels.length > 0) {
+            const empty = document.createElement("div");
+            empty.className = "status-tip";
+            empty.textContent = "没有找到匹配的书籍";
+            bookListEl.appendChild(empty);
+        }
         return;
     }
     names.forEach(name => {
@@ -478,14 +464,19 @@ function backToBooks() {
 // ===================== 阅读功能 =====================
 function openReader(novel) {
     currentNovel = novel;
-    $("readerTitle").textContent = novel.title;
-    $("readerMeta").textContent = `书籍：${novel.book}　作者：${novel.author}`;
-    $("reader-content").innerHTML = marked.parse(novel.content);
-    $("reader-content").style.fontSize = fontSize + "px";
-    currentPage = 1;
-    $("pageControl").style.display = "none";
+    const idx = currentBookChapters.findIndex(c => c.path === novel.path);
+    currentPage = (idx >= 0 ? idx : 0) + 1;
     $("bookDetail").style.display = "none";
     $("readerView").style.display = "block";
+    if (currentReadMode === "page" && currentBookChapters.length) {
+        pageContents = [...currentBookChapters];
+        totalPages = pageContents.length;
+        renderChaptersPage();
+        $("pageControl").style.display = "flex";
+    } else {
+        renderReader();
+        $("pageControl").style.display = "none";
+    }
     window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -496,55 +487,50 @@ function backToDetail() {
 }
 
 function switchReadMode(mode, btn) {
+    currentReadMode = mode;
     document.querySelectorAll("[data-readmode]").forEach(b => b.classList.remove("active"));
     if (btn) btn.classList.add("active");
-    if (mode === "scroll") {
-        if (currentNovel) $("reader-content").innerHTML = marked.parse(currentNovel.content);
-        $("pageControl").style.display = "none";
-    } else {
-        updatePagination();
+    if (mode === "page" && currentBookChapters.length) {
+        pageContents = [...currentBookChapters];
+        totalPages = pageContents.length;
+        if (currentNovel) {
+            const idx = currentBookChapters.findIndex(c => c.path === currentNovel.path);
+            currentPage = (idx >= 0 ? idx : 0) + 1;
+        }
+        renderChaptersPage();
         $("pageControl").style.display = "flex";
-        renderCurrentPage();
+    } else {
+        if (currentNovel) renderReader();
+        $("pageControl").style.display = "none";
     }
 }
 
-function updatePagination() {
+function renderReader() {
     if (!currentNovel) return;
-    const wordsPerPage = parseInt($("pageWordCount").value) || 1200;
-    const text = currentNovel.content;
-    pageContents = [];
-    let current = "";
-    let count = 0;
-    const paragraphs = text.split("\n\n");
-    paragraphs.forEach(p => {
-        const len = p.length;
-        if (count + len > wordsPerPage && current.length > 0) {
-            pageContents.push(current);
-            current = p;
-            count = len;
-        } else {
-            current += (current ? "\n\n" : "") + p;
-            count += len;
-        }
-    });
-    if (current.trim()) pageContents.push(current);
-    totalPages = pageContents.length;
-    currentPage = 1;
-    renderCurrentPage();
+    const novel = currentNovel;
+    $("readerTitle").textContent = novel.title;
+    $("readerMeta").textContent = `书籍：${novel.book}　作者：${novel.author}`;
+    $("reader-content").innerHTML = marked.parse(novel.content);
+    $("reader-content").style.fontSize = fontSize + "px";
 }
 
-function renderCurrentPage() {
-    if (pageContents.length === 0) return;
-    $("reader-content").innerHTML = marked.parse(pageContents[currentPage - 1]);
+function renderChaptersPage() {
+    if (!pageContents.length) return;
+    const novel = pageContents[currentPage - 1];
+    if (!novel) return;
+    currentNovel = novel;
+    $("readerTitle").textContent = novel.title;
+    $("readerMeta").textContent = `书籍：${novel.book}　作者：${novel.author}`;
+    $("reader-content").innerHTML = marked.parse(novel.content);
     $("reader-content").style.fontSize = fontSize + "px";
     $("pageInfo").textContent = `第 ${currentPage} 页 / 共 ${totalPages} 页`;
 }
 
 function prevPage() {
-    if (currentPage > 1) { currentPage--; renderCurrentPage(); window.scrollTo({ top: 0, behavior: "smooth" }); }
+    if (currentPage > 1) { currentPage--; renderChaptersPage(); window.scrollTo({ top: 0, behavior: "smooth" }); }
 }
 function nextPage() {
-    if (currentPage < totalPages) { currentPage++; renderCurrentPage(); window.scrollTo({ top: 0, behavior: "smooth" }); }
+    if (currentPage < totalPages) { currentPage++; renderChaptersPage(); window.scrollTo({ top: 0, behavior: "smooth" }); }
 }
 function changeFontSize(delta) {
     fontSize = Math.max(14, Math.min(28, fontSize + delta));
@@ -564,12 +550,6 @@ function doSearch() {
             || n.content.toLowerCase().includes(keyword)
         );
     }
-    renderBookList();
-}
-
-function resetSearch() {
-    searchInput.value = "";
-    filterNovels = [...allNovels];
     renderBookList();
 }
 
@@ -594,20 +574,15 @@ function setTheme(theme, btn) {
 function openSettingModal() {
     $("settingModal").style.display = "flex";
     $("setFontSize").value = fontSize;
-    $("setDefaultTheme").value = document.body.dataset.theme;
-    $("setDefaultWords").value = $("pageWordCount").value;
 }
 
 function closeSettingModal() { $("settingModal").style.display = "none"; }
 
 function saveGlobalSettings() {
     fontSize = parseInt($("setFontSize").value);
-    $("pageWordCount").value = $("setDefaultWords").value;
-    setTheme($("setDefaultTheme").value);
     if (currentNovel) {
         $("reader-content").style.fontSize = fontSize + "px";
-        const modeBtn = document.querySelector("[data-readmode].active");
-        if (modeBtn && modeBtn.dataset.readmode === "page") updatePagination();
+        if (currentReadMode === "page") renderChaptersPage();
     }
     saveSettingToLocal();
     closeSettingModal();
@@ -617,8 +592,7 @@ function saveGlobalSettings() {
 function saveSettingToLocal() {
     const setting = {
         theme: document.body.dataset.theme,
-        fontSize: fontSize,
-        pageWords: parseInt($("pageWordCount").value)
+        fontSize: fontSize
     };
     localStorage.setItem(CONFIG.STORAGE_KEY, JSON.stringify(setting));
 }
@@ -630,7 +604,6 @@ function loadSettingFromLocal() {
         const setting = JSON.parse(saved);
         if (setting.theme) setTheme(setting.theme);
         if (setting.fontSize) fontSize = setting.fontSize;
-        if (setting.pageWords) $("pageWordCount").value = setting.pageWords;
     } catch(e) {}
 }
 
