@@ -23,24 +23,44 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Import inbox txt
+      # 容错：某本导入失败则跳过并上报、文件保留在 _inbox；其余正常导入并统一提交上架。
+      - name: Import inbox txt (容错)
+        id: import
         shell: bash
         run: |
-          set -e
           imported=0
+          failed=0
+          failedlist=""
           for f in _inbox/*.txt; do
             [ -e "$f" ] || continue
             echo "===== 导入 $f ====="
-            node tools/import_novel.mjs "$f"
-            imported=1
-            rm -f "$f"
+            if node tools/import_novel.mjs "$f"; then
+              rm -f "$f"
+              imported=1
+            else
+              echo "!!! 导入失败，已跳过（文件保留在 _inbox 供修复）: $f"
+              echo "!!! 错误详情见上方 node 输出。"
+              failed=1
+              failedlist="$failedlist ${f##*/}"
+            fi
           done
+          if [ "$failed" = "1" ]; then
+            echo "-------- 失败名单（保留在 _inbox，修复后可重传）--------"
+            for x in $failedlist; do echo "  - $x"; done
+            echo "--------------------------------------------------------"
+          fi
+          echo "imported=$imported" >> "$GITHUB_OUTPUT"
           if [ "$imported" = "0" ]; then
+            if [ "$failed" = "1" ]; then
+              echo "!! 本次没有成功导入任何书籍（见上方失败名单）。"
+              exit 1
+            fi
             echo "没有待导入的 .txt，结束。"
             exit 0
           fi
 
       - name: Commit and push
+        if: steps.import.outputs.imported == '1'
         env:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
