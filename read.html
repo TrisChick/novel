@@ -6,45 +6,56 @@
 <title>云笺 · 小说编辑上传工具</title>
 <style>
 :root{
-    --bg:#f5f7fa;--card:#ffffff;--text:#222;--sub:#666;
-    --border:#dddddd;--accent:#3b82f6;--glass-blur:12px;
+    --bg:#eef1ff;--glass-bg:rgba(255,255,255,0.6);--glass-border:rgba(255,255,255,0.8);
+    --text:#2c2f3a;--sub:#6a6f85;--border:rgba(80,90,160,0.14);
+    --accent:#6366f1;--accent-2:#a855f7;--accent-grad:linear-gradient(135deg,#6366f1,#a855f7);
+    --shadow:0 12px 36px rgba(70,80,160,0.12);--blur:blur(20px) saturate(180%);
 }
 [data-theme="dark"]{
-    --bg:#121212;--card:#1c1c1e;--text:#eeee;--sub:#aaaa;
-    --border:#333333;--accent:#60a5fa;
+    --bg:#0e0e13;--glass-bg:rgba(38,38,46,0.55);--glass-border:rgba(255,255,255,0.12);
+    --text:#e6e6ee;--sub:#a2a2b4;--border:rgba(255,255,255,0.12);
+    --accent:#818cf8;--accent-2:#c084fc;
+    --shadow:0 12px 36px rgba(0,0,0,0.5);
 }
 *{box-sizing:border-box;margin:0;padding:0;font-family:system-ui,-apple-system}
-body{background:var(--bg);color:var(--text);padding:20px;min-height:100vh;transition:0.3s}
+body{background:var(--bg);color:var(--text);padding:20px;min-height:100vh;transition:0.3s;position:relative;overflow-x:hidden}
+body::before,body::after{content:'';position:fixed;z-index:-1;border-radius:50%;filter:blur(90px);opacity:.5;pointer-events:none}
+body::before{width:55vw;height:55vw;top:-20vw;left:-15vw;background:radial-gradient(circle,#a5b4fc,#e0aaff 60%,transparent 72%)}
+body::after{width:50vw;height:50vw;bottom:-20vw;right:-12vw;background:radial-gradient(circle,#fbcfe8,#bae6fd 60%,transparent 72%)}
+body[data-theme="dark"]::before{opacity:.3}
+body[data-theme="dark"]::after{opacity:.26}
 .container{max-width:1100px;margin:0 auto}
 .card{
-    background:var(--card);border:1px solid var(--border);border-radius:16px;
-    padding:24px;margin-bottom:22px;backdrop-filter:blur(var(--glass-blur));
-    box-shadow:0 6px 24px rgba(0,0,0,0.06);
+    background:var(--glass-bg);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+    border:1px solid var(--glass-border);border-radius:20px;
+    padding:24px;margin-bottom:22px;box-shadow:var(--shadow);
 }
-h2{margin-bottom:16px;font-size:1.35rem;font-weight:600}
+h2{margin-bottom:16px;font-size:1.35rem;font-weight:700;color:var(--accent)}
 label{display:block;margin:12px 0 6px;color:var(--sub);font-size:0.92rem}
 input,select{
-    width:100%;padding:11px 14px;border:1px solid var(--border);
-    border-radius:10px;background:transparent;color:var(--text);font-size:1rem
+    width:100%;padding:11px 14px;border:1px solid var(--glass-border);
+    border-radius:12px;background:var(--glass-bg);color:var(--text);font-size:1rem;
+    outline:none;transition:0.2s
 }
+input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(99,102,241,0.25)}
 .toolbar{
-    display:flex;flex-wrap:wrap;gap:6px;padding:12px;border:1px solid var(--border);
-    border-radius:12px;margin-bottom:14px;background:transparent
+    display:flex;flex-wrap:wrap;gap:6px;padding:12px;border:1px solid var(--glass-border);
+    border-radius:12px;margin-bottom:14px;background:rgba(255,255,255,0.2)
 }
 .toolbar button{
-    padding:7px 11px;border:1px solid var(--border);border-radius:8px;
-    background:transparent;color:var(--text);cursor:pointer;font-size:0.9rem;
+    padding:7px 11px;border:1px solid var(--glass-border);border-radius:8px;
+    background:rgba(255,255,255,0.2);color:var(--text);cursor:pointer;font-size:0.9rem;
     transition:0.2s
 }
-.toolbar button:hover{background:rgba(59,130,246,0.1);border-color:var(--accent)}
+.toolbar button:hover{background:var(--accent-grad);color:#fff;border-color:transparent}
 #content{
-    width:100%;min-height:360px;padding:14px;border:1px solid var(--border);
-    border-radius:12px;background:transparent;color:var(--text);resize:vertical;
+    width:100%;min-height:360px;padding:14px;border:1px solid var(--glass-border);
+    border-radius:12px;background:var(--glass-bg);color:var(--text);resize:vertical;
     font-size:1rem;line-height:1.7;white-space:pre-wrap;outline:none
 }
 .preview-box{
-    margin-top:14px;padding:16px;border:1px solid var(--border);border-radius:12px;
-    min-height:200px;
+    margin-top:14px;padding:16px;border:1px solid var(--glass-border);border-radius:12px;
+    min-height:200px;background:rgba(255,255,255,0.25)
 }
 .preview-box h1{font-size:2rem;margin:12px 0}
 .preview-box h2{font-size:1.6rem;margin:10px 0}
@@ -56,9 +67,11 @@ input,select{
 .preview-box u{text-decoration:underline}
 
 .btn-group{display:flex;gap:12px;flex-wrap:wrap;margin-top:18px}
-.btn-blue{padding:11px 22px;background:var(--accent);color:#fff;border:none;border-radius:10px;cursor:pointer}
-.btn-gray{padding:11px 22px;background:transparent;border:1px solid var(--border);color:var(--text);border-radius:10px;cursor:pointer}
-.btn-red{padding:11px 22px;background:#ef4444;color:#fff;border:none;border-radius:10px;cursor:pointer}
+.btn-blue{padding:11px 22px;background:var(--accent-grad);color:#fff;border:none;border-radius:12px;cursor:pointer;font-weight:600;transition:0.2s}
+.btn-blue:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(99,102,241,0.4)}
+.btn-gray{padding:11px 22px;background:rgba(255,255,255,0.2);border:1px solid var(--glass-border);color:var(--text);border-radius:12px;cursor:pointer;transition:0.2s}
+.btn-gray:hover{background:var(--accent-grad);color:#fff}
+.btn-red{padding:11px 22px;background:#ef4444;color:#fff;border:none;border-radius:12px;cursor:pointer}
 .status{margin-top:16px;padding:12px;border-radius:10px;font-size:0.92rem}
 .success{background:#dcfce7;color:#166534}
 .error{background:#fee2e2;color:#991b1b}
@@ -67,15 +80,15 @@ input,select{
     text-align:center;margin-top:24px;padding:16px;
 }
 .bottom-link .visit-btn{
-    display:inline-block;padding:10px 24px;background:var(--accent);color:#fff;
-    text-decoration:none;border-radius:10px;margin-bottom:10px
+    display:inline-block;padding:10px 24px;background:var(--accent-grad);color:#fff;
+    text-decoration:none;border-radius:12px;margin-bottom:10px;font-weight:600
 }
 .source-desc{text-align:center;margin-top:10px;color:var(--sub);font-size:0.9rem}
 .source-desc a{color:var(--accent);text-decoration:none}
 .sort-item{
     display:flex;align-items:center;justify-content:space-between;
-    padding:10px 12px;border:1px solid var(--border);border-radius:8px;
-    margin:6px 0;gap:10px;
+    padding:10px 12px;border:1px solid var(--glass-border);border-radius:10px;
+    margin:6px 0;gap:10px;background:rgba(255,255,255,0.2)
 }
 .sort-item .name{flex:1}
 .sort-item button{padding:4px 10px;font-size:0.8rem}
@@ -164,14 +177,14 @@ input,select{
     </div>
 
     <div class="bottom-link">
-        <a class="visit-btn" href="https://youreln.github.io/novel/" target="_blank">前往中梧小说阅读站</a>
+        <a class="visit-btn" href="https://trischick.github.io/novel/" target="_blank">前往中梧小说阅读站</a>
         <div class="source-desc">编辑器技术来源：<a href="https://youreln.github.io/Cloudpad/" target="_blank">云笺@Youreln开发</a></div>
     </div>
 </div>
 
 <script>
 const GH_CONFIG = {
-    user: "Youreln",
+    user: "TrisChick",
     repo: "novel",
     token: "你的PAT细粒度" // 替换为有效PAT
 };

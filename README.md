@@ -18,7 +18,7 @@
 
 |站点名称|访问链接|核心功能|
 |---|---|---|
-|**小说阅读主站**|[https://youreln\.github\.io/novel](https://youreln.github.io/novel)|书架展示、在线阅读、阅读主题/字号/行距调节|
+|**小说阅读主站**|[https://trischick\.github\.io/novel](https://trischick.github.io/novel)|书架展示、在线阅读、阅读主题/字号/行距调节|
 |**云笺官方编辑器**|[https://youreln\.github\.io/Cloudpad/](https://youreln.github.io/Cloudpad/)|小说排版、文件管理、仓库读写、书架排序配置|
 |**开发者官网**|[https://youreln\.github\.io/](https://youreln.github.io/)|项目汇总、技术博客、动态更新|
 |**官方 B 站主页**|[https://space\.bilibili\.com/1372117931](https://space.bilibili.com/1372117931)|教程视频、功能更新、项目演示|
