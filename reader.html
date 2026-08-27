@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>简单阅读</title>
+<title>阅读 - 简单阅读</title>
 <link rel="icon" href="favicon.ico" type="image/x-icon">
 <link rel="stylesheet" href="style.css">
 </head>
-<body data-theme="light" data-page="home">
+<body data-theme="light" data-page="reader">
 <div class="container">
     <nav class="top-nav">
         <div class="nav-brand"><h1>简单阅读</h1></div>
@@ -17,15 +17,28 @@
         </div>
     </nav>
 
-    <div class="search-bar">
-        <input id="searchInput" placeholder="搜索书名 / 作者">
-        <button id="searchBtn" onclick="doSearch()">搜索</button>
+    <div class="reader-view">
+        <div class="reader-head">
+            <button class="back-btn" onclick="backToHome()">返回书架</button>
+            <h2 class="reader-title" id="readerTitle">加载中</h2>
+        </div>
+        <div class="reader-meta" id="readerMeta"></div>
+
+        <div class="reader-tools">
+            <span>字号</span>
+            <button class="tool-btn" onclick="changeFontSize(-2)">A-</button>
+            <button class="tool-btn" onclick="changeFontSize(2)">A+</button>
+        </div>
+
+        <div id="reader-content"></div>
+
+        <div class="reader-nav">
+            <button id="prevChBtn" class="tool-btn">上一章</button>
+            <button id="tocBtn" class="tool-btn toc-link">目录</button>
+            <button id="nextChBtn" class="tool-btn">下一章</button>
+            <span id="pageInfo" class="page-info">第 1 章 / 共 1 章</span>
+        </div>
     </div>
-
-    <div id="statusTip" class="status-tip">加载中</div>
-    <div id="loader" class="loader" style="display:none"></div>
-
-    <div id="bookList" class="book-list"></div>
 </div>
 
 <div class="setting-modal" id="settingModal">

@@ -180,6 +180,11 @@ function main() {
   }
   console.log(`[4] 已写出 ${files.length} 个文件到 ${outDir}`);
 
+  // 生成 <书>/toc.json（章节清单，供详情页/阅读页按需加载）
+  const toc = { book, author, chapters: files.map(f => ({ file: `${f.num}.txt`, title: f.title })) };
+  writeFileSync(join(outDir, 'toc.json'), JSON.stringify(toc, null, 2) + '\n', 'utf8');
+  console.log(`[5] 已生成 ${join(outDir, 'toc.json')}`);
+
   // 更新 novel/sort.json
   const sortPath = join(process.cwd(), 'novel', 'sort.json');
   let order = [];
@@ -188,7 +193,7 @@ function main() {
   }
   if (!order.includes(book)) order.push(book);
   writeFileSync(sortPath, JSON.stringify({ order }, null, 2) + '\n', 'utf8');
-  console.log(`[5] 已更新 novel/sort.json 顺序: ${order.join(', ')}`);
+  console.log(`[6] 已更新 novel/sort.json 顺序: ${order.join(', ')}`);
 }
 
 main();

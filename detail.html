@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>简单阅读</title>
+<title>书籍详情 - 简单阅读</title>
 <link rel="icon" href="favicon.ico" type="image/x-icon">
 <link rel="stylesheet" href="style.css">
 </head>
-<body data-theme="light" data-page="home">
+<body data-theme="light" data-page="detail">
 <div class="container">
     <nav class="top-nav">
         <div class="nav-brand"><h1>简单阅读</h1></div>
@@ -17,15 +17,16 @@
         </div>
     </nav>
 
-    <div class="search-bar">
-        <input id="searchInput" placeholder="搜索书名 / 作者">
-        <button id="searchBtn" onclick="doSearch()">搜索</button>
+    <div class="page-head">
+        <button class="back-btn" onclick="backToHome()">返回书架</button>
+        <h2 class="detail-title" id="detailTitle">加载中</h2>
     </div>
+    <div class="detail-meta" id="detailMeta"></div>
 
     <div id="statusTip" class="status-tip">加载中</div>
     <div id="loader" class="loader" style="display:none"></div>
 
-    <div id="bookList" class="book-list"></div>
+    <div id="tocList" class="toc-list"></div>
 </div>
 
 <div class="setting-modal" id="settingModal">
