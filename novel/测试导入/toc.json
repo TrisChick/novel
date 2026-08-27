@@ -1,0 +1,23 @@
+{
+  "book": "测试导入",
+  "author": "测试作者",
+  "mode": "chapters",
+  "chapters": [
+    {
+      "file": "000.txt",
+      "title": "内容简介"
+    },
+    {
+      "file": "001.txt",
+      "title": "第一章 起始"
+    },
+    {
+      "file": "002.txt",
+      "title": "第二章 进行"
+    },
+    {
+      "file": "003.txt",
+      "title": "第三章 终章"
+    }
+  ]
+}
