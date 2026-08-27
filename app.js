@@ -241,7 +241,7 @@ function backToHome() { location.href = "index.html"; }
 
 // 分页：每页最多 PAGE_CHARS 字；正文超过则切成多页，阅读页显示「上一页/目录/下一页」，
 // 与「上一章/目录/下一章」互斥（两组不同时出现）。
-const PAGE_CHARS = 100000;
+const PAGE_CHARS = 10000;
 function splitPages(text) {
     if (text.length <= PAGE_CHARS) return [text];
     const pages = [];
@@ -249,9 +249,9 @@ function splitPages(text) {
     while (start < text.length) {
         let end = start + PAGE_CHARS;
         if (end < text.length) {
-            // 优先在换行处断页，避免截断第 100000 字处的半行
+            // 优先在换行处断页（仅当换行在页尾之前，避免超出 PAGE_CHARS；遇到页尾恰为换行则硬切到上一行）
             const nl = text.lastIndexOf("\n", end);
-            if (nl > start) end = nl + 1;
+            if (nl > start && nl < end) end = nl + 1;
         } else {
             end = text.length;
         }
