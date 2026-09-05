@@ -180,55 +180,119 @@ function doSearch() {
 }
 
 // ---- 详情页 ----
+// 目录分页：每页最多 TOC_PAGE_SIZE 章，长篇小说（几千章）目录一次只渲染一页，避免生成过多 DOM。
+const TOC_PAGE_SIZE = 100;
 async function initDetail() {
-    const { book } = getQuery();
+    const { book, page: pageParam } = getQuery();
     if (!book) { showError("缺少书籍参数"); return; }
     toggleLoader(true);
     showStatus("加载中");
     try {
         const t = await fetchJson(tocUrl(book));
         $("detailTitle").textContent = t.book || book;
-        $("detailMeta").textContent = `作者：${t.author || "佚名"}　共 ${t.chapters.length} 章`;
-        const toc = $("tocList");
-        toc.innerHTML = "";
         const chapters = t.chapters || [];
+        $("detailMeta").textContent = `作者：${t.author || "佚名"}　共 ${chapters.length} 章`;
+        const toc = $("tocList");
         const open = file => { location.href = `reader.html?book=${enc(t.book || book)}&ch=${enc(file)}`; };
         const hasVolumes = t.mode === "volumes" && Array.isArray(t.volumes) && t.volumes.length > 0;
+
+        // 按展示顺序构建条目列表（保持卷分组顺序），并为每章分配全局序号，用于按章分页。
+        const entries = [];
+        let chIndex = 0;
+        const pushChapter = (title, file) => entries.push({ type: "chapter", title, file, idx: chIndex++ });
         if (hasVolumes) {
             // 不归属任何卷的章节（如前置简介、卷前序章）先平铺
             const inVol = new Set();
             t.volumes.forEach(v => (v.chapters || []).forEach(f => inVol.add(f)));
-            chapters.filter(c => !inVol.has(c.file)).forEach(ch => {
-                const item = document.createElement("div");
-                item.className = "toc-item";
-                item.textContent = ch.title;
-                item.onclick = () => open(ch.file);
-                toc.appendChild(item);
-            });
-            // 按卷分组
+            chapters.filter(c => !inVol.has(c.file)).forEach(ch => pushChapter(ch.title, ch.file));
+            // 按卷分组：卷标题紧随其章节之前，记录该卷章节区间 [start, end)
             t.volumes.forEach(v => {
-                const hd = document.createElement("div");
-                hd.className = "toc-volume";
-                hd.textContent = v.title;
-                toc.appendChild(hd);
+                const hd = { type: "volume", title: v.title, start: chIndex, end: chIndex };
+                entries.push(hd);
                 (v.chapters || []).forEach(file => {
                     const ch = chapters.find(c => c.file === file);
-                    const item = document.createElement("div");
-                    item.className = "toc-item";
-                    item.textContent = ch ? ch.title : file;
-                    item.onclick = () => open(file);
-                    toc.appendChild(item);
+                    pushChapter(ch ? ch.title : file, file);
                 });
+                hd.end = chIndex;
             });
         } else {
-            chapters.forEach(ch => {
-                const item = document.createElement("div");
-                item.className = "toc-item";
-                item.textContent = ch.title;
-                item.onclick = () => open(ch.file);
-                toc.appendChild(item);
+            chapters.forEach(ch => pushChapter(ch.title, ch.file));
+        }
+        const total = chIndex;
+        const totalPages = Math.max(1, Math.ceil(total / TOC_PAGE_SIZE));
+
+        // 当前目录页：支持 ?page=N 深链定位，越界则收敛到最近的有效页
+        let tocPage = parseInt(pageParam, 10);
+        if (isNaN(tocPage) || tocPage < 0) tocPage = 0;
+        if (tocPage >= totalPages) tocPage = totalPages - 1;
+
+        // 分页控件（顶部 + 底部两处，共用同一套渲染逻辑）
+        const pagers = Array.from(document.querySelectorAll(".toc-pager"));
+        const setPager = p => {
+            const prev = p.querySelector(".pager-prev");
+            const next = p.querySelector(".pager-next");
+            const sel = p.querySelector(".pager-select");
+            const info = p.querySelector(".pager-info");
+            prev.disabled = tocPage <= 0;
+            next.disabled = tocPage >= totalPages - 1;
+            sel.innerHTML = "";
+            for (let i = 0; i < totalPages; i++) {
+                const s = i * TOC_PAGE_SIZE + 1;
+                const e = Math.min(total, (i + 1) * TOC_PAGE_SIZE);
+                const opt = document.createElement("option");
+                opt.value = i;
+                opt.textContent = `第 ${i + 1} 页 · 第 ${s}-${e} 章`;
+                if (i === tocPage) opt.selected = true;
+                sel.appendChild(opt);
+            }
+            info.textContent = `第 ${tocPage * TOC_PAGE_SIZE + 1}-${Math.min(total, (tocPage + 1) * TOC_PAGE_SIZE)} 章 / 共 ${total} 章`;
+        };
+
+        function renderPage() {
+            const start = tocPage * TOC_PAGE_SIZE;
+            const end = Math.min(total, start + TOC_PAGE_SIZE);
+            toc.innerHTML = "";
+            entries.forEach(e => {
+                if (e.type === "chapter") {
+                    if (e.idx >= start && e.idx < end) {
+                        const item = document.createElement("div");
+                        item.className = "toc-item";
+                        item.textContent = e.title;
+                        item.onclick = () => open(e.file);
+                        toc.appendChild(item);
+                    }
+                } else if (e.end > e.start && e.end > start && e.start < end) {
+                    // 卷标题：只要该卷有章节落在当前页，就在页内显示卷标题
+                    const hd = document.createElement("div");
+                    hd.className = "toc-volume";
+                    hd.textContent = e.title;
+                    toc.appendChild(hd);
+                }
+            });
+            pagers.forEach(p => {
+                p.style.display = totalPages > 1 ? "" : "none";
+                setPager(p);
             });
         }
+
+        // 翻页：跳转到指定页，回写 ?page=N 便于刷新/分享/返回保留位置
+        const gotoPage = p => {
+            tocPage = Math.min(Math.max(p, 0), totalPages - 1);
+            renderPage();
+            const top = toc.getBoundingClientRect().top + window.scrollY - 80;
+            window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+            const u = new URL(location.href);
+            if (tocPage > 0) u.searchParams.set("page", tocPage);
+            else u.searchParams.delete("page");
+            try { history.replaceState(null, "", u); } catch (e) {}
+        };
+        pagers.forEach(p => {
+            p.querySelector(".pager-prev").onclick = () => gotoPage(tocPage - 1);
+            p.querySelector(".pager-next").onclick = () => gotoPage(tocPage + 1);
+            p.querySelector(".pager-select").onchange = e => gotoPage(e.target.value * 1);
+        });
+
+        renderPage();
         showStatus(`共 ${chapters.length} 章`);
     } catch (e) {
         showError(`加载失败：${e.message}`);
