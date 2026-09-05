@@ -338,8 +338,12 @@ async function initReader() {
         const cur = chapters[idx] || { file: ch, title: "" };
         const raw = await fetchText(chapterUrl(book, cur.file));
         const metaMatch = raw.match(/<!--\s*ZW_META:\s*(\{[\s\S]*?\})\s*-->/);
+        // 以 toc.json 为权威来源（书名/作者/章节标题可由管理后台编辑）；ZW_META 仅在字段缺失时兜底。
         let meta = { title: cur.title, author: t.author || "佚名", book: t.book || book };
-        if (metaMatch) { try { meta = Object.assign(meta, JSON.parse(metaMatch[1])); } catch (e) {} }
+        if (metaMatch) { try {
+            const zm = JSON.parse(metaMatch[1]);
+            meta = { title: meta.title || zm.title || "", author: meta.author || zm.author || "佚名", book: meta.book || zm.book || book };
+        } catch (e) {} }
         const content = raw.replace(/<!--\s*ZW_META:[\s\S]*?-->\s*/, "").trim();
 
         $("readerTitle").textContent = meta.title || cur.title;

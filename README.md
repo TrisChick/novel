@@ -84,6 +84,7 @@ node tools/import_novel.mjs "path\小说.txt" [选项]
 - **GitHub Token**：首次进入后，在「设置 Token」里粘贴一个**仅限本仓库的 fine-grained Personal Access Token**（权限：`Contents` → Read and write）。Token 只保存在你本地浏览器 `localStorage`，**绝不写入仓库源码**——别人打开管理页只会看到 Token 输入框，无法写入。
 - **上传**：选一个 `.txt` → 用 Git Data API 一次提交推送到 `_inbox/<书名>.txt` → 触发 **Auto import novels from _inbox** 工作流自动切分、生成章节与 `toc.json`、更新 `sort.json` 上架。
 - **删除**：书单里点「删除」→ 写入 `_ops/delete-*.json` 请求 → **Apply admin operations (_ops)** 工作流执行 `git rm`、更新 `sort.json`、请求 jsdelivr 强制刷新缓存。删除是「提交请求 → 工作流几秒后执行」的异步操作。
+- **编辑**：书单里点「编辑」→ 可改**显示书名 / 作者**、**目录内章节名 / 卷名**，并用 ↑/↓ **重排卷序与章节顺序**；保存后覆写 `toc.json`，全站（书架/目录/阅读页）即时生效。阅读页以 `toc.json` 为权威来源，`ZW_META` 只在缺字段时兜底。
 - **安全边界**：真正的写权限是那个 Token；管理口令与 Token 都是纯前端门槛，懂行者可绕过读取——适合个人自用，请勿公开。
 
 ## 工具
