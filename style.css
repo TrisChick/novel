@@ -50,6 +50,18 @@ body{
 .book-item:hover{transform:translateY(-2px);border-color:var(--accent);box-shadow:0 12px 30px rgba(37,99,235,0.14)}
 .book-item-title{font-size:1.12rem;font-weight:700;color:var(--text);margin-bottom:6px}
 .book-item-meta{font-size:0.85rem;color:var(--sub)}
+.book-item-actions{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
+
+/* 管理后台 */
+.admin-toolbar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:18px;padding:14px 16px;background:var(--glass-bg);border:1px solid var(--glass-border);border-radius:var(--radius-md);box-shadow:var(--shadow)}
+.upload-label{cursor:pointer;color:var(--text)}
+.tool-btn.danger{background:rgba(220,38,38,0.08);border-color:rgba(220,38,38,0.3);color:#dc2626}
+.tool-btn.danger:hover{background:#dc2626;color:#fff}
+.token-tip{font-size:0.9rem;color:var(--sub);line-height:1.7;margin-bottom:14px}
+.token-tip b{color:var(--accent)}
+.token-input{width:100%;min-height:88px;padding:12px;border:1px solid var(--glass-border);border-radius:12px;background:var(--glass-bg);color:var(--text);font-size:0.92rem;outline:none;resize:vertical;box-sizing:border-box;margin-bottom:14px}
+.token-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.save-setting-btn.ghost{background:transparent;color:var(--accent);border:1px solid var(--glass-border);margin-top:8px}
 
 /* 详情 + 目录 */
 .page-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
@@ -134,4 +146,6 @@ body{
     .toc-pager{gap:8px;padding:10px 12px}
     .toc-pager .pager-btn{padding:9px 14px}
     .toc-pager .pager-select{max-width:200px}
+    .admin-toolbar{gap:8px;padding:12px}
+    .book-item-actions{gap:8px}
 }

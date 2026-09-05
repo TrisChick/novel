@@ -15,6 +15,7 @@
 - **阅读设置**：默认字号 / 行距 / 页边距，日间 / 夜间单按钮切换；设置持久化于 `localStorage`（键 `simple_reader_setting`）。
 - **全站主题**：蓝白玻璃拟态，移动端适配（`@media(max-width:640px)`），顶部导航吸顶。
 - **访问口令门**：`CONFIG.ACCESS_PWD` 非空时进入站点前弹出全屏口令层（`sessionStorage` 同会话免重复），口令正确才加载。
+- **管理后台**：`admin.html` 自助管理——独立管理口令 + 本地保存的 GitHub Token（仅限本仓库，不进仓库源码），可直接**上传 / 删除**小说；上传经 `_inbox` 自动导入工作流，删除经 `_ops` 工作流执行并刷新 CDN。
 
 ## 页面结构
 
@@ -23,7 +24,9 @@
 | `index.html` | 首页 = 书架列表 | `body[data-page="home"]` |
 | `detail.html?book=书名` | 详情 + 目录 | `body[data-page="detail"]` |
 | `reader.html?book=书名&ch=章节文件` | 阅读页 | `body[data-page="reader"]` |
+| `admin.html` | 管理后台（上传 / 删除 / 刷新 CDN） | `body[data-page="admin"]` |
 | `app.js` | 全局配置 `CONFIG`、主题/设置、页面分发器（`body[data-page]`）、口令门 | — |
+| `admin.js` | 管理后台逻辑（口令门、Token、Git Data API 提交、上传/删除） | — |
 | `style.css` | 蓝白玻璃风样式 | — |
 
 ## 数据与目录约束
@@ -73,6 +76,16 @@ node tools/import_novel.mjs "path\小说.txt" [选项]
 - `app.js` 的 `CONFIG.ACCESS_PWD` 存口令的 **SHA-256 十六进制哈希**；留空字符串 = 不启用（公开）。
 - 生成哈希：`node tools/gen_pwd.mjs 你的口令`，把输出填入 `CONFIG.ACCESS_PWD` 后推送即生效。
 
+## 管理后台（admin.html）
+
+在线地址：`https://trischick.github.io/novel/admin.html`（随 GitHub Pages 一起部署）。
+
+- **管理口令**：`admin.js` 的 `ADMIN.pwdHash` 存管理口令的 SHA-256 十六进制哈希（与阅读口令独立，建议更长更随机）。生成：`node tools/gen_pwd.mjs 你的口令`，替换 `ADMIN.pwdHash` 后推送即生效。
+- **GitHub Token**：首次进入后，在「设置 Token」里粘贴一个**仅限本仓库的 fine-grained Personal Access Token**（权限：`Contents` → Read and write）。Token 只保存在你本地浏览器 `localStorage`，**绝不写入仓库源码**——别人打开管理页只会看到 Token 输入框，无法写入。
+- **上传**：选一个 `.txt` → 用 Git Data API 一次提交推送到 `_inbox/<书名>.txt` → 触发 **Auto import novels from _inbox** 工作流自动切分、生成章节与 `toc.json`、更新 `sort.json` 上架。
+- **删除**：书单里点「删除」→ 写入 `_ops/delete-*.json` 请求 → **Apply admin operations (_ops)** 工作流执行 `git rm`、更新 `sort.json`、请求 jsdelivr 强制刷新缓存。删除是「提交请求 → 工作流几秒后执行」的异步操作。
+- **安全边界**：真正的写权限是那个 Token；管理口令与 Token 都是纯前端门槛，懂行者可绕过读取——适合个人自用，请勿公开。
+
 ## 工具
 
 - `tools/import_novel.mjs`：通用自动导入。
@@ -82,6 +95,7 @@ node tools/import_novel.mjs "path\小说.txt" [选项]
 ## GitHub Actions
 
 - **Auto import novels from _inbox**：`_inbox` 自助导入（容错批量，失败跳过并保留在 `_inbox`）。
+- **Apply admin operations (_ops)**：处理管理后台的删除请求（`_ops/*.json`）。
 - **Deploy static content to Pages**：GitHub Pages 部署。
 
 ## 注意事项与避坑
@@ -91,6 +105,7 @@ node tools/import_novel.mjs "path\小说.txt" [选项]
 - 仅支持 `.txt` / `.md` 章节文件，其他格式无法解析。
 - 国内直连 GitHub 概率超时，可用 `CONFIG.CDN_BASE` 走 jsdelivr 缓解；修改后请强制刷新（`Ctrl+Shift+R`）。
 - 请勿在公开场合泄露口令；口令存 SHA-256 哈希，但纯前端门对懂行者可绕过，适合拦截随手点开的路人。
+- 管理后台 `admin.html` 是公开页，无 Token 时只能查看书单；使用的 GitHub Token 务必仅限本仓库（`Contents` Read and write），不要把允许写入其它仓库的 Token 粘贴进去。
 
 ---
 

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>管理后台 - 简单阅读</title>
+<link rel="icon" href="favicon.ico" type="image/x-icon">
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-theme="light" data-page="admin">
+<div class="container">
+    <nav class="top-nav">
+        <div class="nav-brand"><h1>简单阅读 · 管理</h1></div>
+        <div class="nav-actions">
+            <button id="themeBtn" class="nav-btn" onclick="toggleTheme()">夜间</button>
+            <button class="nav-btn" onclick="location.href='index.html'">返回书架</button>
+        </div>
+    </nav>
+
+    <div class="page-head">
+        <button class="back-btn" onclick="location.href='index.html'">返回书架</button>
+        <h2 class="detail-title">管理后台</h2>
+    </div>
+    <div class="detail-meta" id="adminMeta"></div>
+
+    <div class="admin-toolbar">
+        <label class="tool-btn upload-label" for="uploadInput">上传小说 (.txt)</label>
+        <input type="file" id="uploadInput" accept=".txt,text/plain" style="display:none">
+        <button id="refreshBtn" class="tool-btn">刷新书单</button>
+        <button id="purgeBtn" class="tool-btn">刷新 CDN 缓存</button>
+        <button id="tokenBtn" class="tool-btn">设置 Token</button>
+        <button id="logoutBtn" class="tool-btn">退出登录</button>
+    </div>
+
+    <div id="statusTip" class="status-tip">加载中</div>
+    <div id="loader" class="loader" style="display:none"></div>
+
+    <div id="bookList" class="book-list"></div>
+</div>
+
+<!-- 管理口令门 -->
+<div class="gate-modal" id="adminGate" style="display:none">
+    <div class="gate-box">
+        <h2>管理后台</h2>
+        <p class="gate-tip">请输入管理口令</p>
+        <input id="gateInput" type="password" placeholder="管理口令" autocomplete="off">
+        <button id="gateBtn" class="save-setting-btn">进入</button>
+        <div id="gateErr" class="gate-err"></div>
+    </div>
+</div>
+
+<!-- Token 设置 -->
+<div class="setting-modal" id="tokenModal" style="display:none">
+    <div class="setting-box">
+        <div class="setting-header">
+            <h2>GitHub 访问 Token</h2>
+            <button class="close-setting" onclick="closeTokenModal()">×</button>
+        </div>
+        <p class="token-tip">粘贴一个<b>仅限本仓库</b>的 fine-grained Personal Access Token（权限：Contents Read and write）。Token 只保存在你本地浏览器，绝不写入仓库。</p>
+        <textarea id="tokenInput" class="token-input" placeholder="ghp_... 或 github_pat_..." spellcheck="false"></textarea>
+        <button class="save-setting-btn" onclick="saveToken()">保存 &amp; 载入</button>
+        <button class="save-setting-btn ghost" onclick="closeTokenModal()">跳过（仅可查看书单）</button>
+    </div>
+</div>
+
+<script src="admin.js"></script>
+</body>
+</html>

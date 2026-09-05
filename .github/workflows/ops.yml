@@ -1,0 +1,87 @@
+name: Apply admin operations (_ops)
+
+on:
+  push:
+    branches: [main]
+    paths: ['_ops/*.json']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Apply delete operations
+        shell: bash
+        run: |
+          node - <<'EOF'
+          const fs=require('fs');
+          const path=require('path');
+          const opsDir='_ops';
+          let changed=false;
+          if (!fs.existsSync(opsDir)) { console.log('no _ops dir'); process.exit(0); }
+          const files=fs.readdirSync(opsDir).filter(f=>f.endsWith('.json'));
+          if (files.length===0) { console.log('no ops json'); process.exit(0); }
+          for (const f of files) {
+            const p=path.join(opsDir,f);
+            let op;
+            try { op=JSON.parse(fs.readFileSync(p,'utf8')); }
+            catch(e){ console.log('skip bad json:', f); continue; }
+            if (op.action==='delete' && op.book) {
+              const dir='novel/'+op.book;
+              if (fs.existsSync(dir)) {
+                fs.rmSync(dir,{recursive:true,force:true});
+                console.log('deleted:', dir);
+                changed=true;
+              } else {
+                console.log('book not found, nothing to delete:', op.book);
+              }
+              try {
+                const sp='novel/sort.json';
+                if (fs.existsSync(sp)) {
+                  const sort=JSON.parse(fs.readFileSync(sp,'utf8'));
+                  sort.order=(sort.order||[]).filter(x=>x!==op.book);
+                  fs.writeFileSync(sp, JSON.stringify(sort,null,2)+'\n');
+                  console.log('sort.json updated');
+                  changed=true;
+                }
+              } catch(e){ console.log('sort.json update failed:', e.message); }
+            } else {
+              console.log('unknown op, skip:', p);
+            }
+            fs.rmSync(p,{force:true});
+          }
+          console.log('changed='+changed);
+          EOF
+
+      - name: Commit and push
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "没有变更，跳过提交"
+            exit 0
+          fi
+          git commit -m "apply admin ops (delete books from _ops)"
+          git push "https://x-access-token:${TOKEN}@github.com/${REPO}" HEAD:${BRANCH}
+          # 尽力刷新 CDN 缓存（整包版本），使删除尽快生效
+          echo "刷新 CDN 缓存…"
+          curl -s -X POST https://purge.jsdelivr.net -H 'Content-Type: application/json' \
+            -d "{\"path\":[\"/gh/${REPO}@${BRANCH}/\"]}" || true
